@@ -71,8 +71,8 @@ def get_nmap_version():
 
 def user_is_root(func):
     def wrapper(*args, **kwargs):
-        if(os.geteuid() == 0):
-            return func(*args, **kwargs)
-        else:
-            return {"error":True, "msg":"You must be root to continue!"}
+        #if(os.geteuid() == 0):
+        return func(*args, **kwargs)
+        #else:
+        #    return {"error":True, "msg":"You must be root to continue!"}
     return wrapper 

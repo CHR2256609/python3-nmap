@@ -113,7 +113,7 @@ class Nmap(object):
         return version_data
 
     # Unique method for repetitive tasks - Use of 'target' variable instead of 'host' or 'subnet' - no need to make difference between 2 strings that are used for the same purpose
-    def scan_command(self, target, arg, args=None, timeout=None):
+    def scan_command(self, target, arg, args=None, timeout=None, is_windows_host_os=True):
         self.target == target
         
         command_args = "{target}  {default}".format(target=target, default=arg)
@@ -122,7 +122,7 @@ class Nmap(object):
             scancommand += " {0}".format(args)
         
         scan_shlex = shlex.split(scancommand)
-        output = self.run_command(scan_shlex, timeout=timeout)
+        output = self.run_command_windows(scan_shlex, timeout=timeout) if is_windows_host_os else self.run_command(scan_shlex, timeout=timeout)
         xml_root = self.get_xml_et(output)
 
         return xml_root
@@ -215,12 +215,12 @@ class Nmap(object):
         # TODO
 
     @user_is_root
-    def nmap_os_detection(self, target, arg="-O", args=None): # requires root
+    def nmap_os_detection(self, target, arg="-O", args=None, is_windows_host_os=False): # requires root
         """
         nmap -oX - nmmapper.com -O
         NOTE: Requires root
         """
-        xml_root = self.scan_command(target=target, arg=arg, args=args)
+        xml_root = self.scan_command(target=target, arg=arg, args=args, is_windows_host_os=is_windows_host_os)
         results = self.parser.os_identifier_parser(xml_root)
         return results
 
@@ -268,6 +268,15 @@ class Nmap(object):
         else:
             raise NmapNotInstalledError()
 
+    def run_command_windows(self, cmd, timeout=None):
+        """
+        Runs the nmap command using Windows cmd
+        """
+        proc = subprocess.Popen('cmd.exe', stdin = subprocess.PIPE, stdout = subprocess.PIPE)
+        stdout, stderr = proc.communicate(cmd)
+        if(stderr):
+            print(stderr)
+
     def get_xml_et(self, command_output):
         """
         @ return xml ET
@@ -304,7 +313,7 @@ class NmapScanTechniques(Nmap):
         self.parser  = NmapCommandParser(None)
 
     # Unique method for repetitive tasks - Use of 'target' variable instead of 'host' or 'subnet' - no need to make difference between 2 strings that are used for the same purpose. Creating a scan template as a switcher
-    def scan_command(self, scan_type, target, args, timeout=None):
+    def scan_command(self, scan_type, target, args, timeout=None, is_windows_host_os=False):
         def tpl(i):
             scan_template = {
                 1:self.fin_scan,
@@ -328,7 +337,7 @@ class NmapScanTechniques(Nmap):
                 scan_shlex = shlex.split(scan_type_command)
 
                 # Use the ping scan parser
-                output = self.run_command(scan_shlex, timeout=timeout)
+                output = self.run_command_windows(scan_shlex, timeout=timeout) if is_windows_host_os  else self.run_command(scan_shlex, timeout=timeout)
                 xml_root = self.get_xml_et(output)
 
         return xml_root

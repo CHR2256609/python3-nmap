@@ -121,6 +121,9 @@ class NmapCommandParser(object):
                 address = host.find("address").get("addr")
                 os_dict[address]={}
                 
+                os_dict[address]["lastboot"] = self.parse_uptime(host, "lastboot")
+                os_dict[address]["uptime_seconds"] = self.parse_uptime(host, "seconds")
+                os_dict[address]["status"] = self.parse_host_status(host)
                 os_dict[address]["osmatch"]=self.parse_os(host)
                 os_dict[address]["ports"] = self.parse_ports(host)
                 os_dict[address]["hostname"] = self.parse_hostnames(host)
@@ -134,6 +137,27 @@ class NmapCommandParser(object):
             raise(e)
         else:
             return os_identified
+
+    def parse_uptime(self, os_results, key):
+        
+        lastboot = os_results.find("uptime").get(key)
+        if(lastboot):
+            return lastboot
+        return ""
+
+    def parse_host_status(self, os_results):
+        parsed_host_hint = os_results.find("status")
+
+        if(parsed_host_hint is not None):
+            
+            round_trip_time = os_results.find("times").get("srtt")
+            
+            status = { 'is_on': parsed_host_hint.get("state") }
+
+            if(status and round_trip_time):
+                status["round_trip_time"] = round_trip_time
+                return status
+        return { 'is_on': "off", 'round_trip_time':-1 }
     
     def parse_os(self, os_results):
         """
